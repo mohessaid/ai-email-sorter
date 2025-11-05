@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabaseClient";
  * POST /api/gmail/sync
  *
  * Fetches emails from Gmail, classifies them with AI, and imports into database.
- * This is a manual sync endpoint - automatic syncing will be added later.
+ * Limited to 5 emails per sync due to serverless function constraints.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     console.log(`[Sync] Fetching emails for account ${account.email}`);
 
     const gmailResponse = await fetch(
-      "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20&q=in:inbox",
+      "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q=in:inbox",
       {
         headers: {
           Authorization: `Bearer ${account.access_token}`,
@@ -138,6 +138,7 @@ export async function POST(request: NextRequest) {
 
     const gmailData = await gmailResponse.json();
     const messages = gmailData.messages || [];
+    const totalInInbox = gmailData.resultSizeEstimate || 0;
 
     if (messages.length === 0) {
       return NextResponse.json({
@@ -303,10 +304,19 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Sync] Completed. Imported ${imported} emails`);
 
+    let message = `Imported ${imported} emails`;
+    if (totalInInbox > imported) {
+      message += `. Due to processing limits, only 5 emails can be synced at once. There are ${
+        totalInInbox - imported
+      } emails remaining in your inbox. Please sync again to process more.`;
+    }
+
     return NextResponse.json({
       success: true,
       imported,
       total: messages.length,
+      remainingInInbox: totalInInbox - imported,
+      message,
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error) {
