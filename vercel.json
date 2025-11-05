@@ -7,7 +7,7 @@
   "framework": "nextjs",
   "regions": ["iad1"],
   "functions": {
-    "api/**/*.ts": {
+    "app/api/**/*.ts": {
       "memory": 1024,
       "maxDuration": 300
     }
@@ -22,7 +22,8 @@
           "key": "Referrer-Policy",
           "value": "strict-origin-when-cross-origin"
         },
-        { "key": "Permissions-Policy", "value": "interest-cohort=()" }
+        { "key": "Permissions-Policy", "value": "interest-cohort=()" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
       ]
     }
   ],
